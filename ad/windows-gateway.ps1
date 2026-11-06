@@ -36,6 +36,7 @@ try {
     $context.Response.ContentType=$response.ContentType
     $context.Response.Headers['Cache-Control']=if($response.Headers['Cache-Control']){$response.Headers['Cache-Control']}else{'no-store'}
     foreach($cookie in $response.Headers.GetValues('Set-Cookie')){if($cookie){$context.Response.Headers.Add('Set-Cookie',$cookie)}}
+    if($response.Headers['Content-Disposition']){$context.Response.Headers['Content-Disposition']=$response.Headers['Content-Disposition']}
     if($response.Headers['Content-Encoding']){$context.Response.Headers['Content-Encoding']=$response.Headers['Content-Encoding']}
     if($response.Headers['Location']){$context.Response.Headers['Location']=$response.Headers['Location']}
     $context.Response.Headers['X-Content-Type-Options']='nosniff'

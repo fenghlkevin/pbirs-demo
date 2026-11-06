@@ -7,6 +7,7 @@ import hmac
 import json
 import os
 import secrets
+import socket
 import sys
 import threading
 import time
@@ -21,6 +22,7 @@ from ad_integration import directory, directory_status, sync_directory
 from demo_admin import AdminError, MUTATION_LOCK, Policies, atomic_json, public_user, selection_for, effective_ids
 from rls_admin import RlsAdmin
 from rls_rules import RuleRlsMixin
+from report_export import operation, check_export_access, download_disposition
 from demo_identity import (login, identity, public_account, credential_session,
                            set_demo_password, set_windows_password, import_demo_passwords, SESSIONS, LOCK, TTL)
 
@@ -79,7 +81,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-    def reply(self, status, data, kind='application/json; charset=utf-8', cookie=None, static=False):
+    def reply(self, status, data, kind='application/json; charset=utf-8', cookie=None, static=False, disposition=None):
         raw = json.dumps(data, ensure_ascii=False).encode() if not isinstance(data, bytes) else data
         compressed = len(raw) > 1024 and 'gzip' in self.headers.get('Accept-Encoding', '') and any(
             value in kind for value in ('text/', 'javascript', 'json', 'svg'))
@@ -92,6 +94,7 @@ class Handler(BaseHTTPRequestHandler):
         if compressed:self.send_header('Content-Encoding', 'gzip')
         self.send_header('Vary', 'Accept-Encoding')
         if cookie:self.send_header('Set-Cookie', cookie)
+        if disposition:self.send_header('Content-Disposition', disposition)
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.end_headers()
         self.wfile.write(raw)
@@ -135,14 +138,18 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:SESSIONS.pop(token, None)
                 return self.reply(200, {'ok': True}, cookie='p6_demo_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+secure)
             if proxy_path:
-                if self.command == 'POST' and not (path.lower().startswith('/powerbi/api/explore/') and
-                        path.lower().endswith(('/querydata', '/conceptualschema'))):
-                    raise AdminError(403, '仅允许浏览报表和查询数据')
+                request_operation = operation(path)
+                if self.command == 'POST' and not request_operation:
+                    raise AdminError(403, '仅允许浏览、查询报表及导出 CSV / Excel')
+                exporting = bool(request_operation and request_operation['format'])
                 upstream = os.environ['P4_PBIRS_URL'].rstrip('/')
                 headers = {key: value for key, value in self.headers.items() if key.lower() in
                     ('content-type','accept','accept-language','x-requested-with','requestverificationtoken',
                      'activityid','requestid') or key.lower().startswith('x-powerbi-')}
-                response = credential_session(uid, account).request(self.command, upstream+self.path,
+                viewer = credential_session(uid, account)
+                if exporting:
+                    check_export_access(viewer, upstream, request_operation['id'])
+                response = viewer.request(self.command, upstream+self.path,
                     headers=headers, data=raw or None, timeout=120, allow_redirects=False)
                 if response.is_redirect:
                     destination=response.headers.get('Location', '')
@@ -153,11 +160,12 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_header('Content-Length','0');self.end_headers();return
                 if response.status_code in (401,403):
                     raise AdminError(403, '当前用户的 Windows 身份无权查看此报表或数据；请检查资源和 RLS 绑定')
+                disposition=download_disposition(response.headers.get('Content-Disposition'))
                 content=response.content;kind=response.headers.get('Content-Type','application/octet-stream')
-                if any(value in kind for value in ('text/','javascript','json')):
+                if not exporting and not disposition and any(value in kind for value in ('text/','javascript','json')):
                     content=content.replace(upstream.encode(), origin.encode())
                 static=self.command=='GET' and path.lower().startswith(('/reports/assets/','/powerbi/libs/','/powerbi/assets/'))
-                return self.reply(response.status_code,content,kind,static=static)
+                return self.reply(response.status_code,content,kind,static=static and not exporting,disposition=disposition)
             if path == '/api/me' and self.command == 'GET':
                 return self.reply(200, {**public_account(uid, account),
                     'pbirsUrl': os.environ['P4_PBIRS_URL'].rstrip('/'), 'authentication': 'Demo', 'reportAuthentication': 'Windows'})
@@ -238,13 +246,23 @@ def background_sync():
             print('Windows account sync failed; last complete directory retained', flush=True)
 
 
+class DemoServer(ThreadingHTTPServer):
+    # Windows SO_REUSEADDR can otherwise let stale workers share one port.
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def main():
     if os.environ.get('P6_AUTH_MODE') != 'windows':
         raise SystemExit('Set P6_AUTH_MODE=windows for the PBIRS connection')
     # Fail before opening the listener if dependencies or initial AD sync fail.
     sync_directory()
     import_demo_passwords()
-    server = ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('P6_BACKEND_PORT', '8766'))), Handler)
+    server = DemoServer(('127.0.0.1', int(os.environ.get('P6_BACKEND_PORT', '8766'))), Handler)
     threading.Thread(target=background_sync, daemon=True).start()
     print('Demo login backend listening on loopback; PBIRS remains Windows authenticated', flush=True)
     server.serve_forever()
