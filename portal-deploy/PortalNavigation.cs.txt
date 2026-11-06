@@ -1,0 +1,21 @@
+public static class PortalNavigation {
+ public static string SafeReturn(string input) {
+  string value=String.IsNullOrEmpty(input)?"/Reports":input;
+  for(int count=0;count<3;count++) {
+   if(value.StartsWith("/ReportServer/localredirect",StringComparison.OrdinalIgnoreCase)) {
+    int query=value.IndexOf('?'); value=query<0?"/Reports":HttpUtility.ParseQueryString(value.Substring(query+1))["url"]??"/Reports";
+   } else if(value.StartsWith("%2f",StringComparison.OrdinalIgnoreCase)) value=HttpUtility.UrlDecode(value);
+   else break;
+  }
+  if(value.IndexOfAny(new char[]{'\\','\r','\n'})>=0||value.StartsWith("//"))return "/Reports";
+  string path=value.Split('?')[0];string decoded=Uri.UnescapeDataString(path);
+  if(decoded.IndexOf('\\')>=0||decoded.Contains("..")||decoded.Contains("//"))return "/Reports";
+  if(!(path.Equals("/Reports",StringComparison.OrdinalIgnoreCase)||path.StartsWith("/Reports/",StringComparison.OrdinalIgnoreCase)))return "/Reports";
+  return value;
+ }
+ public static string ForUser(string user,string input) {
+  string value=SafeReturn(input);
+  if(user!="p4:portaladmin"&&user!="p4:maintenance"&&(value.Equals("/Reports",StringComparison.OrdinalIgnoreCase)||value.Equals("/Reports/",StringComparison.OrdinalIgnoreCase)))return "/Reports/browse/P4_Identity_Demo";
+  return value;
+ }
+}

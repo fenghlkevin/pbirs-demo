@@ -1,0 +1,1 @@
+Get-ChildItem 'E:\PowerBI\PBIRS\LogFiles' -Filter 'ReportingServicesService*.log' | Sort LastWriteTime -Descending | Select -First 1 | ForEach-Object { Get-Content $_.FullName -Tail 160 | Select-String 'AuthorizationExtension|SecurityException|permission|Exception|P4.Reporting' -Context 0,5 }

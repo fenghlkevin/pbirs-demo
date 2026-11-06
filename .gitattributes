@@ -1,0 +1,2 @@
+# Translation fragments intentionally retain spaces at TSV field boundaries.
+*.tsv whitespace=-blank-at-eol

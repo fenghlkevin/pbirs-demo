@@ -1,0 +1,92 @@
+[
+  {
+    "section": "Visão geral",
+    "title": "Integração do P6 com o Power BI Report Server",
+    "kind": "intro",
+    "text": "Este vídeo explica como ligamos a nossa plataforma ao Power BI Report Server. Os utilizadores mantêm as suas contas e consultam os relatórios dentro do sistema. Os administradores também gerem o acesso e a segurança ao nível da linha na mesma aplicação. Vamos acompanhar o início de sessão, ver as páginas do Demo e perceber onde se aplica cada permissão."
+  },
+  {
+    "section": "Conceitos",
+    "title": "O que faz o servidor de relatórios",
+    "kind": "flow",
+    "text": "PBIRS é a sigla de Power BI Report Server. O autor cria relatórios no Desktop e publica-os no servidor. O PBIRS guarda relatórios e modelos, executa consultas e apresenta os gráficos. A nossa plataforma trata dos utilizadores, da navegação e da gestão de permissões. Assim, aproveitamos o motor de relatórios existente."
+  },
+  {
+    "section": "Autenticação",
+    "title": "Porque escolhemos autenticação personalizada",
+    "kind": "compare",
+    "text": "Há duas vias principais. A autenticação integrada do Windows utiliza contas do Active Directory. A autenticação personalizada utiliza as contas da nossa aplicação. Como já temos gestão de utilizadores, a primeira via exigiria sincronizar as contas do sistema com as contas do domínio. Escolhemos a segunda para que um novo utilizador não precise também de uma conta de domínio."
+  },
+  {
+    "section": "Arquitectura",
+    "title": "Onde funciona o módulo de integração",
+    "kind": "architecture",
+    "text": "No ambiente de teste, o Demo e o PBIRS estão na mesma máquina, mas funcionam como serviços separados. O servidor do Demo disponibiliza a verificação de contas, os comprovativos de identidade e as interfaces de permissões. O PBIRS carrega a nossa extensão de segurança e a página de entrada. Um identificador estável liga os dois lados. Os relatórios usam a identidade do próprio utilizador."
+  },
+  {
+    "section": "Início de sessão único",
+    "title": "Da entrada no sistema ao acesso ao relatório",
+    "kind": "sequence",
+    "text": "Depois de iniciar sessão, o servidor emite um comprovativo de identidade com validade curta. O PBIRS verifica a assinatura e o prazo de validade e impede a reutilização. Em seguida, cria uma sessão de relatórios para esse utilizador. Os pedidos seguintes reutilizam a sessão, sem voltar a pedir a palavra-passe. A identidade é partilhada, mas cada sistema mantém a sua própria sessão."
+  },
+  {
+    "section": "Página da aplicação",
+    "title": "Entrada directa no portal PBIRS",
+    "kind": "login",
+    "text": "Quem abre directamente o PBIRS encontra esta página de entrada personalizada, instalada na área ReportServer. A página chama o serviço de autenticação do Demo no servidor. Depois de validar a conta, cria a sessão do PBIRS e regressa ao portal. Alterámos o ponto de entrada da autenticação e mantivemos o portal e o motor de relatórios existentes."
+  },
+  {
+    "section": "Página da aplicação",
+    "title": "Gestão de contas na nossa aplicação",
+    "kind": "users",
+    "text": "Nesta página, o administrador pode criar utilizadores, repor palavras-passe e activar ou desactivar contas. As contas são mantidas na aplicação. Criar uma conta não dá acesso automático aos relatórios: é necessário atribuir permissões. O administrador do Demo e o administrador do portal PBIRS têm responsabilidades distintas. Cada utilizador consulta os relatórios com a sua própria identidade."
+  },
+  {
+    "section": "Página da aplicação",
+    "title": "Relatórios dentro da plataforma",
+    "kind": "report",
+    "text": "A página exterior mantém a navegação, as pastas e a pesquisa. Um iframe apresenta o visualizador do PBIRS no interior. Os filtros, as interacções e as consultas continuam a passar pelo servidor de relatórios. Um painel de negócio pode ser uma página de relatório. O PBIRS não disponibiliza o objecto Dashboard nativo do serviço Power BI na nuvem."
+  },
+  {
+    "section": "Permissões",
+    "title": "Acesso ao relatório e segurança ao nível da linha",
+    "kind": "permissions",
+    "text": "As permissões têm dois níveis. As permissões de recursos decidem se o utilizador pode abrir uma pasta ou um relatório. A segurança ao nível da linha, ou RLS, decide quais os registos visíveis dentro desse relatório. Por exemplo, alguém pode abrir uma análise de contribuições e ver apenas a sua região. Atribuir um perfil RLS não concede automaticamente acesso ao relatório."
+  },
+  {
+    "section": "Página da aplicação",
+    "title": "Autorizar pastas e relatórios individuais",
+    "kind": "access",
+    "text": "O administrador selecciona um utilizador e assinala pastas ou relatórios individuais. O servidor grava a escolha no PBIRS, que também verifica as ligações directas. É necessária permissão para percorrer as pastas superiores. O Demo faz uma verificação periódica das permissões. Na produção, a publicação de novos recursos deve igualmente controlar o intervalo em que as permissões são herdadas."
+  },
+  {
+    "section": "Segurança ao nível da linha",
+    "title": "Onde se definem as regras RLS",
+    "kind": "rules",
+    "text": "As regras RLS pertencem ao modelo do relatório. O autor cria perfis, define filtros nas tabelas e publica-os com o relatório. Um perfil da região A pode permitir apenas registos cujo campo Province tenha o valor A. Vários utilizadores podem partilhar o mesmo perfil. O Demo consulta os perfis existentes e gere as atribuições. Não altera as expressões dos filtros."
+  },
+  {
+    "section": "Página da aplicação",
+    "title": "Atribuir RLS em vários relatórios",
+    "kind": "rls",
+    "text": "Ao seleccionar um utilizador, a aplicação apresenta os perfis de todos os relatórios e assinala as atribuições existentes. O administrador altera as selecções e guarda uma só vez. O servidor actualiza apenas os relatórios modificados, preserva os outros utilizadores e confirma o resultado por nova leitura. Como o PBIRS não tem uma transacção entre relatórios, cada falha aparece separadamente."
+  },
+  {
+    "section": "Verificação RLS",
+    "title": "Um relatório, diferentes registos visíveis",
+    "kind": "results",
+    "text": "O relatório de teste tem seis registos sintéticos. O demo um vê três registos da região A, num total de seiscentos. O demo dois vê a região B, num total de mil e quinhentos. O demo três tem os dois perfis e vê os seis registos, num total de dois mil e cem. Mudar o perfil altera a consulta. Sem perfis, a consulta é recusada. A restrição aplica-se no modelo."
+  },
+  {
+    "section": "Extensão prevista",
+    "title": "Associar perfis de negócio ao RLS",
+    "kind": "roles",
+    "text": "Numa extensão futura, um perfil de negócio poderá associar-se a perfis de vários relatórios. O servidor identifica os utilizadores desse perfil e calcula as suas permissões. Quando os membros ou as associações mudam, actualiza as atribuições no PBIRS. É necessário combinar todas as origens antes de retirar acesso. A sincronização altera membros, não actualiza os dados do relatório. Esta extensão ainda não está implementada."
+  },
+  {
+    "section": "Implementação",
+    "title": "Alterações efectuadas no PBIRS",
+    "kind": "changes",
+    "text": "Adicionámos uma extensão de segurança e uma página de entrada, configurámos a autenticação personalizada e ligámos o serviço de contas da aplicação. As permissões de pastas e os membros dos perfis são geridos por interfaces. Mantivemos o portal, o motor de relatórios e os filtros RLS. Não alterámos a configuração FullTrust. A integração definitiva pode reutilizar esta ligação e acrescentar perfis de negócio, auditoria e controlo operacional."
+  }
+]

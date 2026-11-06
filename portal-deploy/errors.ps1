@@ -1,0 +1,1 @@
+Get-ChildItem 'E:\PowerBI\PBIRS\LogFiles' -Filter 'ReportingServicesService*.log' | Sort LastWriteTime -Descending | Select -First 1 | ForEach-Object {Get-Content $_.FullName -Tail 85 | Select-String 'error CS|HttpCompileException|P4Login.aspx|Exception' -Context 0,2}

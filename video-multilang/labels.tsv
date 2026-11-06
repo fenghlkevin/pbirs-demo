@@ -1,0 +1,71 @@
+使用自己的账号	Use your own account	Utilize a sua conta
+访问自己的报表与数据	Access your reports and data	Aceda aos seus relatórios e dados
+系统账号登录    iframe 内嵌    目录授权    RLS	System accounts · iframe embedding · Folder access · RLS	Contas do sistema · iframe · Acesso a pastas · RLS
+业务系统	Business application	Sistema de negócio
+身份与权限接口	Identity and access APIs	APIs de identidade e acesso
+报表作者\n制作并发布	Report author\nBuild and publish	Autor do relatório\nCriar e publicar
+PBIRS\n报表与数据模型	PBIRS\nReports and data models	PBIRS\nRelatórios e modelos
+业务用户\n浏览与交互	Business user\nView and interact	Utilizador\nConsultar e interagir
+Demo 后端\n账号与授权接口	Demo backend\nAccount and access APIs	Backend do Demo\nContas e permissões
+稳定用户标识\n身份票据	Stable user ID\nIdentity ticket	Identificador estável\nBilhete de identidade
+PBIRS 扩展\n认证与访问检查	PBIRS extension\nAuthentication and access	Extensão PBIRS\nAutenticação e acesso
+当前用户	Current user	Utilizador actual
+资源权限\n能否打开报表	Resource access\nMay I open this report?	Acesso a recursos\nPosso abrir o relatório?
+行级权限\n能看到哪些数据	Row-level security\nWhich data may I see?	Segurança por linha\nQue dados posso ver?
+P6 管理业务入口和用户	P6 manages users and the business portal	O P6 gere utilizadores e o portal
+PBIRS 负责报表运行与查询	PBIRS runs reports and queries	O PBIRS executa relatórios e consultas
+当前同机部署，服务各自运行	Currently on one server, with separate services	Actualmente no mesmo servidor, em serviços separados
+普通报表请求使用当前用户身份	Report requests carry the current user identity	Os pedidos usam a identidade do utilizador actual
+查看报表的权限单独授予	Report access is granted separately	O acesso ao relatório é concedido separadamente
+模型角色控制报表内的数据范围	Model roles restrict the data visible inside a report	Os perfis do modelo limitam os dados visíveis
+Windows 集成认证	Windows authentication	Autenticação Windows
+自定义认证 · 本次选择	Custom authentication · Selected	Autenticação personalizada · Escolhida
+身份来源：AD 域账号	Identity: AD domain account	Identidade: conta do domínio AD
+需要维护系统用户与域账号的同步	Synchronise application and AD accounts	Sincronizar contas do sistema e do AD
+账号变更涉及两套管理	Account changes span two systems	Alterações de conta em dois sistemas
+身份来源：业务系统账号	Identity: application account	Identidade: conta do sistema
+认证接口确认当前用户	An authentication API validates the user	A API de autenticação valida o utilizador
+新增用户无需创建域账号	New users need no AD account	Novos utilizadores não precisam de conta AD
+登录业务系统	Sign in to P6	Entrar no P6
+签发短时票据	Issue a short-lived ticket	Emitir bilhete temporário
+PBIRS 验证票据	PBIRS validates the ticket	PBIRS valida o bilhete
+建立用户会话	Create the user session	Criar sessão do utilizador
+查询与权限检查	Query and check access	Consultar e verificar acesso
+用户身份来自系统账号	The identity comes from the application account	A identidade vem da conta do sistema
+票据短时有效，只消费一次	The ticket expires quickly and is used once	O bilhete expira rapidamente e só é usado uma vez
+验证签名、有效期与重放	Check signature, expiry and replay protection	Verificar assinatura, validade e reutilização
+两个系统分别持有自己的会话	Each system maintains its own session	Cada sistema mantém a sua sessão
+后续请求复用会话，无需再次输入密码	Later requests reuse the session, without another password prompt	Os pedidos seguintes reutilizam a sessão, sem nova palavra-passe
+SSO 统一身份，报表服务器仍按当前用户检查访问	SSO shares identity; PBIRS still checks the current user's access	O SSO unifica a identidade; o PBIRS continua a verificar as permissões
+模型角色：Province_A	Model role: Province_A	Perfil do modelo: Province_A
+规则按模型维护	Rules belong to the model	As regras pertencem ao modelo
+多个用户可以复用同一角色	Many users can share one model role	Vários utilizadores podem usar o mesmo perfil
+A 区 3 条	Region A · 3 rows	Região A · 3 linhas
+B 区 3 条	Region B · 3 rows	Região B · 3 linhas
+全部 6 条	All 6 rows	Todas as 6 linhas
+Import 模型 / 六条合成测试数据 / 多角色范围叠加	Import model / Six synthetic rows / Combined role scopes	Modelo Import / Seis linhas fictícias / Âmbitos dos perfis combinados
+业务角色\nA 区业务员	Business role\nRegion A officer	Perfil de negócio\nTécnico da região A
+角色成员\ndemo1、demo2	Role members\ndemo1, demo2	Membros do perfil\ndemo1, demo2
+报表模型角色\nProvince_A	Report model role\nProvince_A	Perfil do modelo\nProvince_A
+后台展开具体用户，再写回成员分配	Resolve individual users, then update role membership	Determinar os utilizadores e actualizar os membros
+成员或角色绑定变化时，重新计算有效授权	Recalculate effective access when members or bindings change	Recalcular o acesso quando mudam membros ou associações
+后续设计，尚未实现业务角色自动展开	Future design: automatic business-role expansion is not implemented	Evolução futura: expansão automática de perfis ainda não implementada
+新增自定义安全扩展	Add a custom security extension	Adicionar uma extensão de segurança
+新增自定义登录页	Add a custom sign-in page	Adicionar uma página de entrada
+配置系统认证入口	Configure the authentication entry point	Configurar o ponto de autenticação
+通过接口维护权限	Maintain access through APIs	Gerir permissões através de APIs
+保留原有报表引擎和门户，FullTrust 配置未修改	Native report engine and portal retained; FullTrust unchanged	Motor e portal originais mantidos; FullTrust sem alterações
+实际页面 · 自定义登录页调用 Demo 账号验证接口	Sign-in preview · Custom page calls the Demo authentication API	Página de entrada · Validação pela API do Demo
+实际页面 · 新用户默认没有报表查看权限	English interface preview · New users start without report access	Página real · Novos utilizadores sem acesso inicial a relatórios
+实际页面 · 外层业务平台，内层 PBIRS 报表查看器	Report viewer preview · Business platform outside, PBIRS inside	Visualizador · Plataforma por fora, PBIRS por dentro
+实际页面 · 目录与单报表授权分别保存	English interface preview · Folder and report access saved separately	Página real · Acesso a pastas e relatórios guardado separadamente
+实际页面 · 跨报表勾选角色，一次提交	English interface preview · Select roles across reports and submit once	Página real · Seleccionar perfis de vários relatórios e guardar
+PBIRS 原生门户 · 登录后按当前用户列出可浏览的目录	PBIRS portal preview · Folders follow the current user's permissions	Portal PBIRS · Pastas segundo as permissões do utilizador
+选择用户	Select a user	Seleccionar utilizador
+勾选模型角色	Select model roles	Seleccionar perfis
+统一保存并回读	Save and read back	Guardar e confirmar
+选择目录或报表	Select folders or reports	Seleccionar pastas ou relatórios
+写入 PBIRS 策略	Update PBIRS policies	Actualizar políticas PBIRS
+创建系统账号	Create an account	Criar conta
+管理用户状态	Manage user status	Gerir estado da conta
+另行分配报表权限	Grant report access separately	Conceder acesso aos relatórios

@@ -1,0 +1,157 @@
+P4 Demo · 用户与报表	P4 Demo · Utilizadores e relatórios
+系统账号管理 · 报表查看授权 · 行级权限	Gestão de utilizadores e permissões de relatórios
+登录 Demo	Entrar no Demo
+管理员使用 admin；普通用户使用各自的系统账号。	O administrador utiliza admin. Os restantes utilizadores entram com a sua conta.
+账号	Utilizador
+密码	Palavra-passe
+登录	Entrar
+打开 PBIRS 门户	Abrir portal PBIRS
+退出登录	Terminar sessão
+我的报表	Os meus relatórios
+用户管理	Utilizadores
+报表授权	Permissões de acesso
+行级权限	Segurança ao nível da linha
+正在加载…	A carregar…
+刷新	Actualizar
+目录 / 报表	Pasta / Relatório
+所在路径	Caminho
+操作	Acções
+新建用户	Novo utilizador
+新用户默认没有报表权限，创建后可分配查看授权。	Os novos utilizadores não têm acesso a relatórios até receberem permissões.
+姓名	Nome
+角色	Perfil
+状态	Estado
+可查看报表	Relatórios acessíveis
+选择用户	Seleccionar utilizador
+请选择普通用户	Seleccione um utilizador
+请选择用户	Seleccione um utilizador
+请选择用户。	Seleccione um utilizador.
+可勾选目录或单个报表。	Seleccione pastas ou relatórios individuais.
+目录授权覆盖所有下级目录和报表。	A permissão de uma pasta abrange as suas subpastas e relatórios.
+下级报表已有独立权限时也会生效；后续新增资源会在一分钟内应用目录授权。	Abrange também relatórios com permissões próprias. Os novos recursos são sincronizados no prazo de um minuto.
+取消目录授权时，单独勾选的报表授权仍会保留。	Ao retirar uma pasta, mantêm-se as permissões individuais dos relatórios seleccionados.
+授权在报表服务器实际生效，复制报表地址同样需要权限。	As permissões são aplicadas no servidor, incluindo o acesso por ligação directa.
+目录与报表授权	Permissões de pastas e relatórios
+请先选择一个已启用的普通用户。	Seleccione primeiro um utilizador activo.
+保存授权	Guardar permissões
+选择用户后，在右侧直接勾选全部报表的角色，一次保存。	Seleccione um utilizador, assinale os perfis dos relatórios e guarde todas as alterações de uma só vez.
+已绑定的角色会自动勾选。角色按所属报表区分，过滤规则由报表模型维护。	Os perfis atribuídos aparecem assinalados. Cada perfil pertence a um relatório. As regras são definidas no modelo.
+报表查看授权仍在“报表授权”中单独配置。	O acesso ao relatório é atribuído separadamente em «Permissões de acesso».
+用户行级权限	Permissões de dados do utilizador
+重新读取 PBIRS	Actualizar a partir do PBIRS
+保存全部修改	Guardar alterações
+同一报表的多个角色会叠加可见范围。取消某报表的全部角色并保存，会移除此用户在此报表中的角色分配。	Os perfis do mesmo relatório somam os dados visíveis. Desmarcar todos os perfis e guardar remove a atribuição nesse relatório.
+关闭报表	Fechar relatório
+普通用户仅能查看已授权报表。	Os utilizadores só podem consultar os relatórios autorizados.
+初始密码	Palavra-passe inicial
+取消	Cancelar
+创建用户	Criar utilizador
+重置密码	Repor palavra-passe
+保存后，该用户已登录的 Demo 会话将失效。	Ao guardar, as sessões actuais deste utilizador no Demo deixam de ser válidas.
+新密码	Nova palavra-passe
+保存新密码	Guardar palavra-passe
+全部目录	Todas as pastas
+打开目录	Abrir pasta
+查看报表	Ver relatório
+没有匹配的目录或报表	Não foram encontradas pastas ou relatórios.
+此目录没有可查看的内容，请联系管理员分配权限。	Esta pasta não tem conteúdo acessível. Contacte o administrador para obter acesso.
+当前可查看 	Acesso a 
+ 个目录、	 pastas e 
+ 个报表	 relatórios
+管理员	Administrador
+普通用户	Utilizador
+已启用	Activo
+已停用	Inactivo
+停用	Desactivar
+启用	Activar
+已停用用户，并撤销其报表访问；重新启用可恢复原授权。	Utilizador desactivado e acesso aos relatórios revogado. A reactivação repõe as permissões anteriores.
+用户已启用，原报表授权已恢复。	Utilizador activado. As permissões anteriores foram repostas.
+重置 	Repor a palavra-passe de 
+ 的密码	
+管理员账号保护	Conta de administrador protegida
+授权目录 	Autorizar pasta 
+授权报表 	Autorizar relatório 
+全部目录（根目录）	Todas as pastas (raiz)
+ · 来自目录 	 · Herdado de 
+ · 包含全部下级目录和报表	 · Inclui subpastas e relatórios
+ · 单独报表授权	 · Permissão individual
+ · 同时保留单独授权	 · Permissão individual mantida
+已选择 	Seleccionadas 
+ 个单独报表；合计可查看 	 relatórios individuais. Total acessível: 
+ 个报表。目录包含下级资源。	 relatórios. As pastas incluem os seus recursos.
+ · 目录与报表授权	 · Permissões de pastas e relatórios
+正在保存…	A guardar…
+ 张报表）	 relatórios)
+） · PBIRS 身份：	) · Identidade PBIRS: 
+授权	Atribuir
+RLS 角色	Perfil RLS
+所属报表	Relatório
+已读取 	Consultados 
+ 张报表，共 	 relatórios, com 
+ 个角色；已绑定角色自动勾选。	 perfis. Os perfis atribuídos estão assinalados.
+已读取的报表中没有 RLS 角色。	Os relatórios consultados não têm perfis RLS.
+此用户已停用，暂不能修改。 	Este utilizador está inactivo. Não é possível alterar as permissões. 
+读取失败（不参与保存）：	Falha na leitura (excluídos da gravação): 
+ 张报表未配置模型角色。	 relatórios sem perfis definidos no modelo.
+正在读取该用户在全部报表中的角色绑定…	A consultar as atribuições deste utilizador em todos os relatórios…
+读取失败，请重试。	Não foi possível carregar os dados. Tente novamente.
+ · 已停用	 · Inactivo
+保存成功，已回读核对	Guardado e confirmado no PBIRS
+全部修改已保存到 PBIRS。	Todas as alterações foram guardadas no PBIRS.
+部分报表保存失败，未确认的勾选保留，请重新读取核对后重试。	Alguns relatórios não foram guardados. As selecções não confirmadas foram mantidas. Actualize e verifique antes de tentar novamente.
+；勾选已保留，若提示数据变化，请重新读取后确认。	. As selecções foram mantidas. Se os dados mudaram, actualize e confirme.
+用户 	Utilizador 
+ 已创建，默认没有报表权限。可点击“报表授权”分配。	 criado sem acesso a relatórios. Atribua o acesso em «Permissões de acesso».
+密码已重置，该用户原有的 Demo 会话已失效。	Palavra-passe reposta. As sessões anteriores no Demo foram invalidadas.
+目录与报表授权已保存，并已在 PBIRS 生效。	As permissões de pastas e relatórios foram guardadas e aplicadas no PBIRS.
+已退出登录。	Sessão terminada.
+服务器响应异常（	Resposta inesperada do servidor (
+请求失败	O pedido falhou
+Demo 管理员	Administrador do Demo
+PBIRS 保存后的分配与预期不一致，请重新读取并核对	As atribuições no PBIRS não correspondem ao esperado. Actualize e verifique.
+PBIRS 授权操作失败（HTTP 	Falha ao actualizar permissões no PBIRS (HTTP 
+PBIRS 的角色或成员已变化，请重新读取后确认再保存	Os perfis ou membros no PBIRS foram alterados. Actualize e confirme antes de guardar.
+PBIRS 角色写入未确认，请重新读取实际分配后再操作	A gravação dos perfis não foi confirmada. Actualize as atribuições antes de continuar.
+Power BI 报表不存在	O relatório Power BI não existe.
+enabled 必须为布尔值	O estado activo deve ser verdadeiro ou falso.
+上游请求失败，请稍后重试	O servidor de relatórios não respondeu. Tente novamente mais tarde.
+保存未确认，请重新读取核对	Gravação não confirmada. Actualize e verifique.
+姓名长度为 1～80 个字符	O nome deve ter entre 1 e 80 caracteres.
+密码长度需要为 8～128 个字符	A palavra-passe deve ter entre 8 e 128 caracteres.
+当前 PBIRS 用户无权访问此资源	O utilizador actual não tem permissão para aceder a este recurso.
+报表 ID 不正确	O identificador do relatório é inválido.
+报表不存在或类型不正确	O relatório não existe ou o tipo é inválido.
+报表列表不正确或重复	A lista de relatórios é inválida ou contém duplicados.
+授权保存失败，回滚未全部成功，请检查 PBIRS 授权	Falha na gravação e na reposição de algumas permissões. Verifique as permissões no PBIRS.
+此演示不允许修改管理员的启停状态或密码	Este Demo não permite alterar o estado ou a palavra-passe dos administradores.
+演示仅允许读取报表与查询数据	Este Demo apenas permite consultar relatórios e dados.
+用户不存在	O utilizador não existe.
+目录不存在或类型不正确	A pasta não existe ou o tipo é inválido.
+目录分页地址异常	A ligação de paginação da pasta é inválida.
+目录或报表列表不正确	A lista de pastas ou relatórios é inválida.
+目录读取失败，请稍后重试	Não foi possível carregar as pastas. Tente novamente mais tarde.
+管理员的模型角色受保护，此页面只管理普通用户	Os perfis dos administradores estão protegidos. Esta página apenas gere utilizadores comuns.
+管理员的资源权限由初始化配置管理	As permissões de recursos dos administradores são geridas na configuração inicial.
+管理接口不存在	O serviço de gestão solicitado não existe.
+系统账号或密码错误	Utilizador ou palavra-passe incorrectos.
+该用户存在高级资源角色，请先在 PBIRS 核查，Demo 不覆盖高级权限	Este utilizador tem permissões avançadas. Verifique-as no PBIRS. O Demo não as substitui.
+该账号已存在	Este utilizador já existe.
+请先启用用户再修改授权	Active o utilizador antes de alterar as permissões.
+请先启用用户再修改行级权限	Active o utilizador antes de alterar os perfis RLS.
+请先登录第三方演示页面	Inicie sessão no Demo primeiro.
+请求内容不正确	O conteúdo do pedido é inválido.
+请选择正确的模型角色列表	Seleccione uma lista válida de perfis do modelo.
+请选择需要保存的角色	Seleccione os perfis a guardar.
+读取失败，未修改此报表	Falha na leitura. Este relatório não foi alterado.
+读取失败，请重试或检查报表模型	Falha na leitura. Tente novamente ou verifique o modelo do relatório.
+账号须为 3～40 位字母、数字、下划线或短横线，以字母开头	O utilizador deve ter 3 a 40 caracteres, começar por uma letra e usar letras, números, _ ou -.
+选中的角色不属于当前报表，请重新读取 PBIRS 角色	O perfil seleccionado não pertence ao relatório. Actualize os perfis a partir do PBIRS.
+需要 Demo 管理员权限	Esta operação exige permissões de administrador do Demo.
+请输入账号	Introduza o utilizador
+请输入密码	Introduza a palavra-passe
+搜索目录或报表	Pesquisar pastas ou relatórios
+3～40 位，以字母开头	3 a 40 caracteres, começando por uma letra
+可选，不填则使用账号	Opcional. Por omissão, utiliza o nome de utilizador.
+选择授权用户	Seleccionar utilizador para autorizar
+选择行级权限用户	Seleccionar utilizador para RLS
+Power BI 报表	Relatório Power BI

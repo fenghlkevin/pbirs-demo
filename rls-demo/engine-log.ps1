@@ -1,0 +1,1 @@
+Get-ChildItem 'E:\PowerBI\PBIRS\LogFiles' -File | Sort-Object LastWriteTime -Descending | Select-Object -First 5 | ForEach-Object { Write-Output $_.Name; Get-Content $_.FullName -Tail 90 | Select-String 'f81aad|Error|Exception|P4_RLS|DataModel|corrupt|restore' }

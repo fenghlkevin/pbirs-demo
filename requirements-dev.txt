@@ -1,0 +1,5 @@
+-r requirements.txt
+pywinrm>=0.5,<1
+edge-tts>=7.2,<8
+Pillow>=11,<13
+imageio-ffmpeg>=0.6,<1
