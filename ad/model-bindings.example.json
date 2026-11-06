@@ -1,0 +1,7 @@
+[
+  {
+    "reportId": "00000000-0000-0000-0000-000000000000",
+    "connectionString": "Data Source=localhost:MODEL_PORT;Integrated Security=SSPI",
+    "database": "EXACT_MODEL_DATABASE_NAME"
+  }
+]

@@ -4,7 +4,7 @@ import hashlib
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from demo_admin import AdminError, Policies, is_admin, public_user
+from demo_admin import AdminError, Policies, is_admin, public_user, principal_equal
 
 
 def canonical(assignments):
@@ -92,7 +92,7 @@ class RlsAdmin:
         if not desired<=known:raise AdminError(400,'选中的角色不属于当前报表，请重新读取 PBIRS 角色')
         if validate_only:return None
         principal=account['principal']
-        merged=[copy.deepcopy(a) for a in assignments if a['GroupUserName']!=principal]
+        merged=[copy.deepcopy(a) for a in assignments if not principal_equal(a['GroupUserName'],principal)]
         if desired:merged.append({'GroupUserName':principal,'DataModelRoles':sorted(desired)})
         if canonical(assignments)!=canonical(merged):
             prefix='/PowerBIReports('+report['Id']+')'
@@ -118,7 +118,7 @@ class RlsAdmin:
             try:
                 _,roles,assignments=self.read(report['Id'])
                 selected=next((a.get('DataModelRoles',[]) for a in assignments
-                               if a['GroupUserName']==account['principal']),[])
+                               if principal_equal(a['GroupUserName'],account['principal'])),[])
                 results.append({**report,'status':'ok','roles':[{'Id':r['ModelRoleId'],'Name':r['ModelRoleName']} for r in roles],
                                 'roleIds':selected,'revision':revision(roles,assignments)})
             except Exception:

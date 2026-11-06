@@ -1,3 +1,7 @@
+# PBIRS Demo · Windows 本地账号版本
+
+当前分支 `featrue-1.0.1` 使用 PBIRS 原生 Windows 认证，拉取本地账号并在 Demo 管理报表权限、RLS 绑定与只读规则展示。启动入口为 `ad_server.py`，详见 [Windows 版本说明](ad/README.md)。以下保留原 Forms 版本说明供历史参考。
+
 # PBIRS Demo
 
 基于系统账号的 Power BI Report Server 集成演示：统一账号登录、iframe 报表查看、用户管理、目录/报表授权，以及跨报表 RLS 角色分配。系统创建用户后，不需要同步创建 AD 域账号。普通用户的报表请求使用自己的 PBIRS 身份，维护身份仅用于受保护的授权管理接口。

@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 
 import requests
-from ticket_auth import BASE, establish
+BASE = os.environ.get("P4_PBIRS_URL", "http://pbirs.example.internal").rstrip("/")
 
 ROOT = Path(__file__).resolve().parent
 ACCOUNTS_PATH = Path(os.environ.get('P4_ACCOUNTS_PATH',str(ROOT / 'app-accounts.local.json')))
@@ -52,6 +52,10 @@ def is_admin(account):
     return account.get('role') == 'admin'
 
 
+def principal_equal(left, right):
+    return left.casefold() == right.casefold() if os.environ.get('P6_AUTH_MODE') == 'windows' else left == right
+
+
 def public_user(name, account):
     return {'username': name, 'displayName': account.get('displayName', name),
             'enabled': account.get('enabled', True), 'role': account.get('role', 'viewer'),
@@ -61,7 +65,12 @@ def public_user(name, account):
 class Policies:
     def __init__(self):
         # Administrative control plane only. Report viewing NEVER uses this identity.
-        self.session, _ = establish('p4:maintenance')
+        if os.environ.get('P6_AUTH_MODE') == 'windows':
+            from ad_integration import windows_session
+            self.session = windows_session()
+        else:
+            from ticket_auth import establish
+            self.session, _ = establish('p4:maintenance')
 
     def call(self, method, path, payload=None):
         response = self.session.request(method, BASE + '/Reports/api/v2.0' + path,
@@ -98,8 +107,14 @@ class Policies:
     def matrix(self):
         items=self.catalog()
         for item in items:
-            policy=self.read(self.policy_path(item))
-            item['policies']=policy['Policies'];item['inherits']=policy['InheritParentPolicy']
+            try:
+                policy=self.read(self.policy_path(item))
+                item['policies']=policy['Policies'];item['inherits']=policy['InheritParentPolicy']
+            except AdminError:
+                if os.environ.get('P6_AUTH_MODE') != 'windows':raise
+                # Legacy Custom-only descriptors can be unreadable by Windows.
+                # Keep them visible to administrators, never infer an empty ACL.
+                item.update(policies=[], inherits=False, policyReadError=True)
         return items
 
     def replace_selection(self,principal,folder_ids,report_ids,enabled,commit):
@@ -119,6 +134,9 @@ class Policies:
         def desired(item):return allowed(item) or (enabled and item['Id'] in navigation)
         changes=[]
         for item in items:
+            if item.get('policyReadError'):
+                if allowed(item):raise AdminError(409,'此旧资源的 Windows 权限不可读，请先完成资源迁移')
+                continue
             path=self.policy_path(item)
             original={'InheritParentPolicy':item['inherits'],'Policies':item['policies']}
             parent=by_path.get(item['Path'].rsplit('/',1)[0] or '/') if item['Path']!='/' else None
@@ -127,12 +145,12 @@ class Policies:
             if item['inherits'] and parent is not None and desired(item)==desired(parent):continue
             break_inheritance=item['inherits'] and parent is not None and desired(item)!=desired(parent)
             entries=copy.deepcopy(original['Policies'])
-            previous=[entry for entry in entries if entry['GroupUserName']==principal]
+            previous=[entry for entry in entries if principal_equal(entry['GroupUserName'],principal)]
             if any(any(role['Name']!='Browser' for role in entry.get('Roles',[])) for entry in previous):
                 raise AdminError(409,'该用户存在高级资源角色，请先在 PBIRS 核查，Demo 不覆盖高级权限')
             granted=desired(item)
             if bool(previous)==granted and not break_inheritance:continue
-            entries=[entry for entry in entries if entry['GroupUserName']!=principal]
+            entries=[entry for entry in entries if not principal_equal(entry['GroupUserName'],principal)]
             if granted:entries.append({'GroupUserName':principal,'Roles':[{'Name':'Browser'}]})
             changes.append((path,original,{'InheritParentPolicy':False,'Policies':entries}))
         applied=[]
@@ -195,7 +213,7 @@ def grants_for(account, reports):
         return [report['Id'] for report in reports if report['Type']!='Folder']
     principal = account['principal']
     return [report['Id'] for report in reports if report['Type']!='Folder' and any(
-        entry['GroupUserName'] == principal and any(role['Name'] in ('Browser', 'Content Manager')
+        principal_equal(entry['GroupUserName'], principal) and any(role['Name'] in ('Browser', 'Content Manager')
                                                    for role in entry.get('Roles', []))
         for entry in report.get('policies', []))]
 
