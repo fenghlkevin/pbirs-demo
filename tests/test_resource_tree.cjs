@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict');
+const {tree,covered}=require('../ad/tree.js');
+const items=[{Id:'r',Name:'Report',Path:'/Finance/Monthly/Report',Type:'PowerBIReport'},{Id:'f',Name:'Finance',Path:'/Finance',Type:'Folder'},{Id:'o',Name:'Other',Path:'/Other',Type:'PowerBIReport'}];
+const root=tree(items);
+assert.equal(root.item.Path,'/');
+const finance=root.children.find(n=>n.item.Id==='f');
+assert.equal(finance.children[0].item.Path,'/Finance/Monthly');
+assert.equal(finance.children[0].item.virtual,true);
+assert.equal(finance.children[0].children[0].item.Id,'r');
+assert.equal(covered(items[0],{folderIds:new Set(['f'])},items).Id,'f');
+assert.equal(covered(items[2],{folderIds:new Set(['f'])},items),undefined);
+assert.equal(covered(items[1],{folderIds:new Set(['f'])},items),undefined);
+assert.equal(covered({...items[0],Path:'/FinanceElse/Report'},{folderIds:new Set(['f'])},items),undefined);
+console.log('Tree hierarchy, virtual ancestors and inherited scope passed');

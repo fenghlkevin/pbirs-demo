@@ -1,40 +1,40 @@
-# Windows 本地账号版本（featrue-1.0.1）
+# Demo 独立登录 + PBIRS Windows 认证
 
-本分支新增 `ad_server.py` 和 `ad/index.html`。当前采用 Windows 本地账号；AD 只读连接代码保留为可选来源，不要求测试服务器加入域。旧 Forms 入口 `server.py` 仅保留供历史回滚，不作为本版本入口。
+入口为 `ad_server.py` 与 `ad/index.html`。Windows/AD 账号资料同步到 Demo，Demo 保存独立密码哈希并验证登录。PBIRS 保持原生 Windows 认证；管理员为每个用户单独配置 Windows 报表凭据，后端以该用户的 NTLM 身份代理报表，不代用管理账号。
 
-## 身份与权限
+## 账号与登录
 
-浏览器通过 `windows-gateway.ps1` 的 HTTP.sys Windows 认证入口登录。网关仅信任 Windows 实际验证的用户名，以 HMAC 对方法、原始路径、正文摘要、用户、时间和一次性 nonce 签名，转发至 127.0.0.1 后端。后端拒绝未签名、篡改及重放请求，POST 还检查 Origin。普通用户不能调用管理接口。
+- Windows 本地账号通过 `Get-LocalUser` 同步，以 SID 作为稳定 ID；可选 AD 来源使用 LDAPS，以 objectGUID 作为稳定 ID。
+- 手动或默认 300 秒定时同步用户资料、启用状态和组，保留 Demo 密码、Windows 加密凭据与报表绑定。同步不创建或改密 Windows 账号。
+- 登录调用 Demo `/api/login`，使用 PBKDF2-SHA256 验证 Demo 密码，签发 HttpOnly/SameSite 会话 Cookie。退出、Demo 改密和源账号停用使 Demo 会话失效。
+- Windows 密码不能通过账号同步取得。管理员在“账号同步”分别设置 Demo 密码及 Windows 报表凭据。配置报表凭据时先调用 PBIRS `/me` 验证用户名一致，再使用当前 Windows 服务用户的 DPAPI 加密保存。
+- 没有 Windows 凭据的用户仍可登录 Demo；报表入口提示需要管理员配置，不使用管理员兜底。不向浏览器返回密码、哈希或密文。
+- 登录页不再使用浏览器的 Windows 身份，也不弹 Windows 登录框。直接访问 PBIRS 原生门户仍按其 Windows 认证处理。
 
-报表 iframe 直接访问 PBIRS，使用浏览器自己的 Windows 身份；不经过管理员查看代理。首次访问不同地址/端口，浏览器可能再次提示 Windows 凭据；这不等同于已实现跨站无感 SSO。不能用 Demo 菜单过滤代替 PBIRS 授权。
+数据目录只允许任务账号和 SYSTEM/Administrators 访问。DPAPI 绑定服务用户；迁移服务账号或主机前应重新配置凭据。当前内网测试使用 HTTP，生产应配置 HTTPS。
 
-后端以 Windows 任务运行账号的 SSPI 身份调用 PBIRS 管理 API。测试部署明确授权使用 Administrator；正式环境应改用有明确资源管理范围的专用账号。
+## 部署
 
-本地账号由 `Get-LocalUser` 读取，SID 作为稳定 ID，读取启用状态和本地组。提供页面手动拉取及默认 300 秒自动同步，不创建用户、不重置密码、不写回 Windows。保留已有授权选择，失踪账号标为不在范围；账号更名会拒绝覆盖，先迁移 PBIRS 原身份授权。同步范围移除本身不保证撤销 PBIRS 直接访问或现存会话。
+安装 `requirements-ad.txt`（包含 Windows 上的 pywin32 依赖），按 `local.env.example` 设置环境变量；程序不会自动加载 dotenv。后端监听 loopback，HTTP.sys 网关运行 `windows-gateway.ps1`，以 Anonymous 接收浏览器请求，仅转发到后端，由 Demo 会话认证保护 API 和报表代理。不要对外开放后端端口。
 
-目录/报表绑定使用 PBIRS 原生 Browser 策略。模型角色绑定使用 DataModelRoleAssignments，保留其他用户及组。Windows 身份比较不区分大小写。页面单独显示组来源；取消个人绑定不会消除组授权。多个 RLS 角色通常按可见范围并集执行。
+管理 API 使用任务运行账号的 SSPI，仅用于元数据和授权。测试环境已授权使用 Administrator 运行现有任务；报表浏览单独使用当前 Demo 用户已配置的 Windows 凭据。正式环境应改用授权范围明确的服务账号。
 
-## 配置与启动
+已有 Demo 的密码哈希可通过一次性导入配置迁移：`P6_DEMO_IMPORT_PATH` 指向旧账号 JSON，`P6_DEMO_IMPORT_MAP` 为旧 Demo 账号到 Windows 短账号名的 JSON 映射。仅填补未设置的 Demo 密码，不覆盖已有密码，不导入或猜测 Windows 密码。新用户先由管理员设置 Demo 密码。
 
-安装 `requirements-ad.txt`，按 `local.env.example` 设置环境变量（程序不自动加载 dotenv）。服务数据目录应只允许任务运行账号与 SYSTEM/Administrators 访问，尤其是网关签名密钥和目录快照。
+## 报表授权与 RLS
 
-1. PBIRS 恢复原生 Windows 认证和原生 Windows 授权扩展，确认有效维护账号可访问根目录。
-2. 运行 `python ad_server.py`，首次完整账号同步成功后才打开后端监听。
-3. 配好 HTTP.sys URL ACL/HTTPS 证书，使用同一组环境变量启动 `windows-gateway.ps1`。
-4. 浏览器通过 P6_PUBLIC_URL 打开 Demo。不要对外开放后端端口。
+授权树显示实际目录层级，支持展开/折叠。目录选择覆盖下级，单独选择保留；树中标记来自上级的授权。保存调用 PBIRS 原生资源策略，保留其他用户和组。
 
-本测试沿用内网 HTTP；对外使用需配置 HTTPS。网关当前串行处理请求，适用于本次 Demo，不是生产并发网关。
+RLS 以有模型角色的报表为主展示，显示表名与 DAX，单独收起无角色与读取失败的报表。加载、修改、保存和部分失败都有状态反馈，保存结果逐项回读；已成功项更新版本，失败项保留草稿。Windows 组授权单独展示，取消直接绑定不等于取消组授权。
 
-## RLS 规则只读展示
+配置 `P6_RULES_PATH`、`P6_TOM_LIBRARY` 和 `P6_ENGINE_PORT_FILE`，后台从 REST 获取运行模型 ID，用 TOM 只读采集角色 PBI_Id、表名和 FilterExpression。忽略内部 RSReaderRole。规则快照验证报表 ModifiedDate、角色 ID/名称及有效期；失败不伪装成没有规则。固定模型映射可配置 `P6_MODEL_BINDINGS_PATH`。此读取方式依赖 PBIRS 内部模型运行机制，升级需回归；Analysis Services live connection 的源端规则不在本实现覆盖内。
 
-配置 `P6_RULES_PATH`、`P6_TOM_LIBRARY`（含 Microsoft.AnalysisServices.Core.dll / Tabular.dll 的目录）及 `P6_ENGINE_PORT_FILE`（PBIRS 嵌入模型的 msmdsrv.port.txt）。管理员读取用户 RLS 时，后台调用 `export-rules.ps1`，从原生 API 获取模型 runtime ID，用 TOM 只读读取角色 PBI_Id、表名与 FilterExpression。忽略引擎内部 RSReaderRole，不修改模型。
+旧 Custom-only 资源可能没有可用的 Windows 安全描述符。保留原 Windows 策略，旧资源读取失败时禁止覆盖，不能给所有资源统一增加管理员权限。本地账号演示使用独立原生目录；未迁移旧资源会在错误明细中显示。
 
-可选 `P6_MODEL_BINDINGS_PATH` 用于固定模型映射，结构见 `model-bindings.example.json`。运行模型端口及此读取方式依赖 PBIRS 版本，升级必须回归；它不是对外公开的规则 REST API。
+## 验证
 
-快照绑定报表 ModifiedDate、模型角色 ID 与名称，默认最多 600 秒有效。报表重新发布、角色变化、模型不可访问或采集失败会显示“规则未采集、读取失败或已过期”，不会把失败显示为“没有规则”。Analysis Services live connection 的源端规则不在本实现覆盖内。
+`python -m unittest discover -s tests -v`
 
-## 从旧 Forms Demo 恢复时的注意事项
+`node tests/test_resource_tree.cjs`
 
-恢复原 Windows 配置不会自动转换只在 Custom 下创建的安全描述符。部分旧目录在 Windows 下会报授权扩展错误。不要把所有资源统一授予 Administrators 来绕过；保留原有 Windows 策略和迁移前备份。在独立原生 Windows 目录发布演示报表后配置本地账号。页面将不可读旧策略明确标记且禁止覆盖；这些旧资源仍需独立迁移，不宣称已全部兼容。
-
-离线验证：`python -m unittest discover -s tests -v`。真实验收还需 Windows 服务器、用户凭据及已配置的原生 PBIRS。旧 Forms 集成脚本不可用于 Windows 分支验收。
+真实验收应使用“独立 Demo 密码 + 不同的 Windows 密码”验证登录、会话隔离、目录树授权、用户自身 querydata 的 A/B/并集 RLS，以及撤权和退出后的拒绝访问。

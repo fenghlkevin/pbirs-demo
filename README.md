@@ -1,6 +1,6 @@
 # PBIRS Demo · Windows 本地账号版本
 
-当前分支 `featrue-1.0.1` 使用 PBIRS 原生 Windows 认证，拉取本地账号并在 Demo 管理报表权限、RLS 绑定与只读规则展示。启动入口为 `ad_server.py`，详见 [Windows 版本说明](ad/README.md)。以下保留原 Forms 版本说明供历史参考。
+当前分支 `featrue-1.0.1` 将 Windows 账号资料同步到 Demo，使用独立 Demo 密码登录；PBIRS 保持原生 Windows 认证，每用户单独配置加密报表凭据。Demo 提供目录树授权、RLS 绑定与只读规则展示。启动入口为 `ad_server.py`，详见 [Windows 版本说明](ad/README.md)。以下保留原 Forms 版本说明供历史参考。
 
 # PBIRS Demo
 

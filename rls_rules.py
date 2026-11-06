@@ -15,6 +15,11 @@ def collect_rules():
     if not library or not output:
         return
     with COLLECT_LOCK:
+        try:
+            if time.time() - Path(output).stat().st_mtime < 30:
+                return
+        except OSError:
+            pass
         args = ['powershell.exe', '-NoProfile', '-NonInteractive', '-File',
                 str(Path(__file__).resolve().parent / 'ad/export-rules.ps1'),
                 '-OutputPath', output, '-TomLibrary', library]
@@ -58,23 +63,29 @@ def rules_for(policies, report_id, roles):
 
 class RuleRlsMixin:
     def user_inventory(self, username, accounts):
+        from demo_admin import AdminError, is_admin, public_user, principal_equal
+        from rls_admin import revision
+        account = accounts.get(username)
+        if not account or is_admin(account):
+            raise AdminError(400, '请选择普通用户')
         collect_rules()
-        data = super().user_inventory(username, accounts)
-        account = accounts[username]
         identities = {account['principal'].casefold(), *(g.casefold() for g in account.get('groups', []))}
-        for report in data['reports']:
-            if report['status'] != 'ok':
-                continue
-            _, roles, assignments = self.read(report['Id'])
-            if {(r['Id'], r['Name']) for r in report['roles']} != {
-                    (r['ModelRoleId'], r['ModelRoleName']) for r in roles}:
-                report.update(status='error', error='模型角色已变化，请重新读取')
-                continue
-            rules = rules_for(self.policies, report['Id'], roles)
-            for role in report['roles']:
-                role.update(rules[role['Id']])
-            # Direct checkbox binding and effective group assignments stay separate.
-            report['groupAssignments'] = [a for a in assignments
-                if a['GroupUserName'].casefold() in identities
-                and a['GroupUserName'].casefold() != account['principal'].casefold()]
-        return data
+        results = []
+        for report in self.reports():
+            try:
+                _, roles, assignments = self.read(report['Id'])
+                details = rules_for(self.policies, report['Id'], roles) if roles else {}
+                selected = sorted({rid for a in assignments
+                    if principal_equal(a['GroupUserName'], account['principal'])
+                    for rid in a.get('DataModelRoles', [])})
+                results.append({**report, 'status': 'ok',
+                    'roles': [{'Id': r['ModelRoleId'], 'Name': r['ModelRoleName'],
+                               **details[r['ModelRoleId']]} for r in roles],
+                    'roleIds': selected, 'revision': revision(roles, assignments),
+                    'groupAssignments': [a for a in assignments
+                        if a['GroupUserName'].casefold() in identities
+                        and not principal_equal(a['GroupUserName'], account['principal'])]})
+            except Exception:
+                results.append({**report, 'status': 'error', 'roles': [],
+                    'error': '此报表的 Windows 模型权限不可读取，未参与保存；请先完成旧资源迁移'})
+        return {'user': public_user(username, account), 'reports': results}

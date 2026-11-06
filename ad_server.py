@@ -1,6 +1,8 @@
-"""AD-only Demo backend. Start behind the authenticated Windows gateway."""
+"""Demo login with per-user Windows-authenticated PBIRS viewing."""
 import base64
 import hashlib
+import gzip
+from http.cookies import SimpleCookie
 import hmac
 import json
 import os
@@ -19,6 +21,8 @@ from ad_integration import directory, directory_status, sync_directory
 from demo_admin import AdminError, MUTATION_LOCK, Policies, atomic_json, public_user, selection_for, effective_ids
 from rls_admin import RlsAdmin
 from rls_rules import RuleRlsMixin
+from demo_identity import (login, identity, public_account, credential_session,
+                           set_demo_password, set_windows_password, import_demo_passwords, SESSIONS, LOCK, TTL)
 
 ROOT = Path(__file__).resolve().parent
 NONCES = {}; NONCE_LOCK = threading.Lock()
@@ -71,15 +75,23 @@ def visible_items(policies, account):
 
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
     def log_message(self, *args):
         pass
 
-    def reply(self, status, data, kind='application/json; charset=utf-8'):
+    def reply(self, status, data, kind='application/json; charset=utf-8', cookie=None, static=False):
         raw = json.dumps(data, ensure_ascii=False).encode() if not isinstance(data, bytes) else data
+        compressed = len(raw) > 1024 and 'gzip' in self.headers.get('Accept-Encoding', '') and any(
+            value in kind for value in ('text/', 'javascript', 'json', 'svg'))
+        if compressed:
+            raw = gzip.compress(raw, compresslevel=6)
         self.send_response(status)
         self.send_header('Content-Type', kind)
         self.send_header('Content-Length', str(len(raw)))
-        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Cache-Control', 'private, max-age=3600' if static else 'no-store')
+        if compressed:self.send_header('Content-Encoding', 'gzip')
+        self.send_header('Vary', 'Accept-Encoding')
+        if cookie:self.send_header('Set-Cookie', cookie)
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.end_headers()
         self.wfile.write(raw)
@@ -93,27 +105,73 @@ class Handler(BaseHTTPRequestHandler):
     def handle_api(self):
         try:
             size = int(self.headers.get('Content-Length', '0'))
-            if not 0 <= size <= 1024 * 1024:
+            if not 0 <= size <= 16 * 1024 * 1024:
                 raise AdminError(413, '请求过大')
             raw = self.rfile.read(size)
-            principal = verify_gateway(self.headers, self.command, self.path, raw, self.server.gateway_key)
-            if self.command == 'POST' and self.headers.get('Origin') != os.environ['P6_PUBLIC_URL'].rstrip('/'):
-                raise AdminError(403, '请求来源不匹配')
-            state = directory(); accounts = state['users']
-            account = next((a for a in accounts.values() if a['principal'].casefold() == principal.casefold()), None)
-            if not account or not account['enabled']:
-                raise AdminError(403, 'Windows 用户尚未同步、已停用或不在同步范围')
             path = urlsplit(self.path).path; query = parse_qs(urlsplit(self.path).query)
-            data = json.loads(raw) if raw else {}
-            if not isinstance(data, dict):
-                raise AdminError(400, '请求内容不正确')
+            origin = os.environ['P6_PUBLIC_URL'].rstrip('/')
+            if self.command == 'POST' and self.headers.get('Origin') != origin:
+                raise AdminError(403, '请求来源不匹配')
+            if path in ('/tree.js', '/app.js') and self.command == 'GET':
+                return self.reply(200, (ROOT / 'ad' / path[1:]).read_bytes(), 'text/javascript; charset=utf-8')
             if path == '/' and self.command == 'GET':
                 return self.reply(200, (ROOT / 'ad/index.html').read_bytes(), 'text/html; charset=utf-8')
+            # Viewer query bodies can exceed management JSON size and have a different schema.
+            proxy_path = path.lower().startswith(('/reports/', '/powerbi/', '/reportserver/'))
+            data = {} if proxy_path else (json.loads(raw) if raw else {})
+            if not isinstance(data, dict):
+                raise AdminError(400, '请求内容不正确')
+            cookies = SimpleCookie(self.headers.get('Cookie', ''))
+            token = cookies['p6_demo_session'].value if 'p6_demo_session' in cookies else ''
+            secure = '; Secure' if origin.startswith('https:') else ''
+            if path == '/api/login' and self.command == 'POST':
+                new_token, user = login(data.get('username'), data.get('password'), self.client_address[0])
+                with LOCK:SESSIONS.pop(token, None)
+                return self.reply(200, user, cookie='p6_demo_session='+new_token+
+                    '; HttpOnly; SameSite=Strict; Path=/; Max-Age='+str(TTL)+secure)
+            uid, account = identity(token)
+            state = directory(); accounts = state['users']
+            if path == '/api/logout' and self.command == 'POST':
+                with LOCK:SESSIONS.pop(token, None)
+                return self.reply(200, {'ok': True}, cookie='p6_demo_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+secure)
+            if proxy_path:
+                if self.command == 'POST' and not (path.lower().startswith('/powerbi/api/explore/') and
+                        path.lower().endswith(('/querydata', '/conceptualschema'))):
+                    raise AdminError(403, '仅允许浏览报表和查询数据')
+                upstream = os.environ['P4_PBIRS_URL'].rstrip('/')
+                headers = {key: value for key, value in self.headers.items() if key.lower() in
+                    ('content-type','accept','accept-language','x-requested-with','requestverificationtoken',
+                     'activityid','requestid') or key.lower().startswith('x-powerbi-')}
+                response = credential_session(uid, account).request(self.command, upstream+self.path,
+                    headers=headers, data=raw or None, timeout=120, allow_redirects=False)
+                if response.is_redirect:
+                    destination=response.headers.get('Location', '')
+                    if destination.startswith(upstream+'/'):destination=destination[len(upstream):]
+                    if not destination.startswith('/') or destination.startswith('//'):
+                        raise AdminError(502, '报表返回了不受信任的跳转')
+                    self.send_response(response.status_code);self.send_header('Location', destination)
+                    self.send_header('Content-Length','0');self.end_headers();return
+                if response.status_code in (401,403):
+                    raise AdminError(403, '当前用户的 Windows 身份无权查看此报表或数据；请检查资源和 RLS 绑定')
+                content=response.content;kind=response.headers.get('Content-Type','application/octet-stream')
+                if any(value in kind for value in ('text/','javascript','json')):
+                    content=content.replace(upstream.encode(), origin.encode())
+                static=self.command=='GET' and path.lower().startswith(('/reports/assets/','/powerbi/libs/','/powerbi/assets/'))
+                return self.reply(response.status_code,content,kind,static=static)
             if path == '/api/me' and self.command == 'GET':
-                return self.reply(200, {**public_user(account['username'], account),
-                    'pbirsUrl': os.environ['P4_PBIRS_URL'].rstrip('/'), 'authentication': 'Windows'})
+                return self.reply(200, {**public_account(uid, account),
+                    'pbirsUrl': os.environ['P4_PBIRS_URL'].rstrip('/'), 'authentication': 'Demo', 'reportAuthentication': 'Windows'})
             if path == '/api/catalog' and self.command == 'GET':
-                return self.reply(200, {'value': visible_items(Policies(), account)})
+                if not account.get('windowsCredential'):
+                    return self.reply(200, {'value': [], 'credentialRequired': True})
+                viewer=credential_session(uid, account);visible=[]
+                for item in Policies().catalog():
+                    if item['Path']=='/':continue
+                    endpoint=Policies.policy_path(item).removesuffix('/Policies')
+                    response=viewer.get(os.environ['P4_PBIRS_URL'].rstrip('/')+'/Reports/api/v2.0'+endpoint,
+                                        timeout=35,allow_redirects=False)
+                    if response.status_code==200:visible.append(item)
+                return self.reply(200, {'value': visible})
             if not path.startswith('/api/admin/'):
                 raise AdminError(404, '接口不存在')
             if account['role'] != 'admin':
@@ -122,11 +180,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply(200, directory_status())
             if path == '/api/admin/ad/sync' and self.command == 'POST':
                 return self.reply(200, sync_directory())
+            if path == '/api/admin/demo-password' and self.command == 'POST':
+                set_demo_password(data.get('username'), data.get('password'))
+                return self.reply(200, {'ok': True})
+            if path == '/api/admin/windows-credential' and self.command == 'POST':
+                set_windows_password(data.get('username'), data.get('password'))
+                return self.reply(200, {'ok': True})
             with MUTATION_LOCK:
                 state = directory(); accounts = state['users']
                 if path == '/api/admin/users' and self.command == 'GET':
-                    return self.reply(200, {'users': [public_user(uid, a) | {'sid': a['sid'],
-                        'upn': a['upn'], 'inScope': a['inScope']} for uid, a in accounts.items()]})
+                    return self.reply(200, {'users': [public_account(uid, a) for uid, a in accounts.items()]})
                 name = query.get('username', [''])[0] if self.command == 'GET' else data.get('username')
                 if path == '/api/admin/access':
                     target = accounts.get(name) if isinstance(name, str) else None
@@ -177,16 +240,13 @@ def background_sync():
 
 def main():
     if os.environ.get('P6_AUTH_MODE') != 'windows':
-        raise SystemExit('Set P6_AUTH_MODE=windows; this entry point does not use Forms authentication')
-    key = base64.b64decode(os.environ['P6_GATEWAY_KEY'], validate=True)
-    if len(key) < 32:
-        raise SystemExit('Gateway key must contain at least 32 random bytes')
+        raise SystemExit('Set P6_AUTH_MODE=windows for the PBIRS connection')
     # Fail before opening the listener if dependencies or initial AD sync fail.
     sync_directory()
+    import_demo_passwords()
     server = ThreadingHTTPServer(('127.0.0.1', int(os.environ.get('P6_BACKEND_PORT', '8766'))), Handler)
-    server.gateway_key = key
     threading.Thread(target=background_sync, daemon=True).start()
-    print('Windows backend listening on loopback; no user passwords stored', flush=True)
+    print('Demo login backend listening on loopback; PBIRS remains Windows authenticated', flush=True)
     server.serve_forever()
 
 
